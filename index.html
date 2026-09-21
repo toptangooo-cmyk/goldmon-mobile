@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E1613">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Gold Monitor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700;800&display=swap">
+<style>
+:root{
+  --bg:#0E1613; --pan:#141F1B; --pan2:#101C2A; --line:#243530;
+  --ink:#E8F0EC; --dim:#8FA39A; --dim2:#6E837A;
+  --up:#4FB477; --dn:#E8574A; --gold:#C9A227; --blue:#7FC7F5;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  -webkit-text-size-adjust:100%}
+body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px)}
+.num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-variant-numeric:tabular-nums}
+.wrap{max-width:520px;margin:0 auto}
+
+#bar{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.5px;
+  font-weight:700;padding:10px 2px 8px;text-transform:uppercase}
+#bar .dot{width:7px;height:7px;border-radius:50%;background:var(--dim2);flex:none;
+  transition:background .3s}
+#bar .dot.on{background:var(--up);box-shadow:0 0 6px var(--up)}
+#bar .dot.warn{background:var(--gold)} #bar .dot.off{background:var(--dn)}
+#src{color:var(--dim)}
+#mkt{margin-left:auto;color:var(--dim)}
+
+#warn{display:none;background:#3A1D1A;border:1px solid var(--dn);color:#FFD9D4;
+  font-size:11.5px;padding:9px 10px;border-radius:8px;margin-bottom:8px;line-height:1.5}
+
+.card{background:var(--pan);border:1px solid var(--line);border-radius:12px;
+  padding:11px 12px;margin-bottom:8px}
+.k{font-size:9.5px;letter-spacing:1px;color:var(--dim);font-weight:700;text-transform:uppercase}
+.big{font-size:38px;font-weight:800;letter-spacing:-1px;line-height:1.05}
+.sub{font-size:11.5px;color:var(--dim);margin-top:4px}
+.up{color:var(--up)} .dn{color:var(--dn)} .neutral{color:var(--dim)}
+
+#cPred{background:var(--pan2);border-color:#2E4C63}
+#predRow{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+#predV{color:var(--blue)}
+#cd{margin-left:auto;text-align:right}
+#cdV{font-size:28px;font-weight:800;color:var(--gold);line-height:1}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cell{background:var(--pan);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
+.cell .v{font-size:19px;font-weight:800;margin-top:2px}
+.cell .x{font-size:10px;color:var(--dim2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+#posCard.hold{border-color:var(--gold)}
+
+h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
+  text-transform:uppercase;font-weight:700}
+#alerts .al{display:flex;gap:8px;padding:8px 4px;border-top:1px solid var(--line);
+  font-size:12px;align-items:baseline}
+#alerts .al:first-child{border-top:none}
+#alerts .t{color:var(--dim2);flex:0 0 42px}
+#alerts .k{flex:0 0 auto;font-size:9.5px;padding:2px 6px;border-radius:5px;font-weight:800;
+  letter-spacing:.3px;color:#0E1613}
+#alerts .m{color:var(--dim);flex:1;min-width:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+#empty{color:var(--dim2);font-size:12px;padding:8px 4px}
+
+.note{font-size:10.5px;color:var(--dim2);line-height:1.6;margin-top:10px;padding:0 2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="bar">
+  <span class="dot" id="dGct"></span><span id="src">connecting…</span>
+  <span id="mkt"></span>
+</div>
+
+<div id="warn"></div>
+
+<div class="card" id="cPred">
+  <div class="k">Next GCT print</div>
+  <div id="predRow">
+    <div>
+      <div class="big num" id="predV">—</div>
+      <div class="sub" id="predS">—</div>
+    </div>
+    <div id="cd">
+      <div class="k">In</div>
+      <div id="cdV" class="num">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="cell">
+    <div class="k">Gram 24 buy</div>
+    <div class="v num" id="gBuyV">—</div>
+    <div class="x num" id="gBuyX">—</div>
+  </div>
+  <div class="cell">
+    <div class="k">XAU gap</div>
+    <div class="v num" id="xauV">—</div>
+    <div class="x">world vs GCT</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell">
+    <div class="k">USD GCT</div>
+    <div class="v num" id="usdV">—</div>
+    <div class="x num" id="usdX">—</div>
+  </div>
+  <div class="cell" id="posCard">
+    <div class="k">Position</div>
+    <div class="v num" id="posV">FLAT</div>
+    <div class="x num" id="posX">—</div>
+  </div>
+</div>
+
+<h2>Alerts</h2>
+<div class="card" style="padding:2px 8px">
+  <div id="alerts"><div id="empty">no alerts yet</div></div>
+</div>
+
+<div class="note" id="foot">—</div>
+<div class="note">View-only mirror of the desktop tool. Trade execution stays in the GCT app.</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ==================================================================
+   GOLD MONITOR — mobile mirror (v1)
+   ------------------------------------------------------------------
+   نسخة احتياطية محلية من نفس الصفحة المنشورة على claude.ai. لو حبيت
+   تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك (GitHub Pages،
+   Netlify، حتى Firebase Hosting بتاع نفس المشروع) وافتحها من الموبايل.
+   الصفحة دي مش بتحسب أي حاجة بنفسها — بتقرا كل ١.٥ ثانية آخر حالة
+   كتبها goldmon.js (اللابتوب) على Firebase Realtime Database وتعرضها.
+   التنفيذ الفعلي للصفقات يفضل من تطبيق GCT العادي — الصفحة دي عرض بس. */
+var $=function(id){return document.getElementById(id)};
+var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
+var MO_CH='gm50x7qT9vL2nR8wF3kP6sD1hB4jM0cX';
+var KCOL={SETUP:'#4A9FD8','GOLD EDGE':'#C9A227','LAST CALL':'#E8574A','USD JUMP':'#E8574A',
+  'USD SPREAD':'#9B7BD8',LOCKED:'#4FB477','GCT ANOMALY':'#F5D93B','BREAK-EVEN':'#4FB477',
+  'T-60':'#C9A227','GCT REPRICE':'#F5D93B','TOOL ASLEEP':'#E8574A','STOP-LOSS':'#E8574A',
+  'WATCH LOW':'#C9A227'};
+
+function ok(n){return typeof n==='number'&&isFinite(n)}
+function f(n,d){return (n==null||!isFinite(n))?'—':
+  Number(n).toLocaleString('en-US',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d})}
+function sgn(n,d){return (n==null||!isFinite(n))?'—':((n>=0?'+':'')+f(n,d))}
+function mmss(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')}
+
+var state=null, fails=0;
+
+function pull(){
+  fetch(MO_URL+'/channels/'+MO_CH+'/state.json?_='+Date.now(),{cache:'no-store'})
+    .then(function(r){if(!r.ok)throw 0;return r.json()})
+    .then(function(j){fails=0;if(j)state=j;draw()})
+    .catch(function(){fails++;draw()});
+}
+
+function draw(){
+  var now=Date.now();
+  var age=(state&&state.ts)?Math.round((now-state.ts)/1000):null;
+  var live=(age!=null&&age<8);
+  var stale=(age!=null&&age>=8&&age<120);
+  $('dGct').className='dot '+(live?'on':(stale?'warn':'off'));
+  $('src').textContent=state
+    ? (live?'live':('last update '+(age!=null?age+'s ago':'—')))
+    : (fails?'can’t reach the channel':'connecting…');
+
+  var w=$('warn');
+  if(!state){
+    w.style.display='none';
+  }else if(age!=null&&age>=15){
+    w.style.display='block';
+    w.innerHTML='<b>الأرقام قديمة (من '+age+' ثانية).</b> يا اللابتوب مقفول، يا MOBILE SCREEN '
+      +'متطفي من إعدادات الأداة، يا في مشكلة شبكة عنده. متتداولش على الأرقام دي.';
+  }else{
+    w.style.display='none';
+  }
+
+  if(state&&state.market){
+    var mk=state.market;
+    $('mkt').textContent={open:'MARKET OPEN',closed:'MARKET CLOSED','break':'DAILY BREAK'}[mk]||mk.toUpperCase();
+    $('mkt').style.color=(mk==='open')?'var(--up)':'var(--gold)';
+  }else $('mkt').textContent='';
+
+  if(state&&ok(state.nextEgp)){
+    $('predV').textContent=f(state.nextEgp,0);
+    $('predV').className='big num';
+    var mv=ok(state.gBuy)?(state.nextEgp-state.gBuy):null;
+    $('predS').innerHTML=mv!=null
+      ?('<span class="'+(mv>=0?'up':'dn')+'">'+sgn(mv,0)+' /g</span> from current')
+      :'—';
+  }else{
+    $('predV').textContent='—';$('predV').className='big num neutral';
+    $('predS').textContent='waiting for a locked print';
+  }
+  $('cdV').textContent=(state&&ok(state.nextInSec))?mmss(state.nextInSec):'—';
+
+  $('gBuyV').textContent=(state&&ok(state.gBuy))?f(state.gBuy,0):'—';
+  $('gBuyX').textContent=(state&&ok(state.gSell))?('sell '+f(state.gSell,0)):'—';
+
+  if(state&&ok(state.xauW)&&ok(state.xauG)){
+    var gap=state.xauW-state.xauG;
+    $('xauV').textContent=sgn(gap,2);
+    $('xauV').className='v num '+(gap>=0?'up':'dn');
+    $('xauX').textContent='world '+f(state.xauW,2)+' · gct '+f(state.xauG,2);
+  }else{$('xauV').textContent='—';$('xauV').className='v num neutral';$('xauX').textContent='world vs GCT'}
+
+  if(state&&ok(state.usdG)){
+    $('usdV').textContent=f(state.usdG,3);
+    $('usdV').className='v num';
+    $('usdX').textContent=ok(state.usdW)?('world '+f(state.usdW,3)+' ('+sgn(state.usdG-state.usdW,3)+')'):'—';
+  }else{$('usdV').textContent='—';$('usdV').className='v num neutral';$('usdX').textContent='—'}
+
+  var pc=$('posCard');
+  if(state&&state.pos){
+    pc.className='cell hold';
+    $('posV').textContent=f(state.pos.gr,1)+'g';
+    $('posV').className='v num';
+    var pl=state.pos.pl;
+    $('posX').innerHTML='@ '+f(state.pos.cost,0)+(ok(pl)?(' · <span class="'+(pl>=0?'up':'dn')+'">'+sgn(pl,0)+'</span>'):'');
+  }else{
+    pc.className='cell';
+    $('posV').textContent='FLAT';$('posV').className='v num neutral';
+    $('posX').textContent='—';
+  }
+
+  var box=$('alerts');
+  if(state&&state.alerts&&state.alerts.length){
+    box.innerHTML=state.alerts.map(function(a){
+      var c=KCOL[a.k]||'#8FA39A';
+      return '<div class="al"><span class="t num">'+(a.t||'')+'</span>'
+        +'<span class="k">'+(a.k||'')+'</span>'
+        +'<span class="m">'+(a.m||'')+'</span></div>'
+        .replace('<span class="k">','<span class="k" style="background:'+c+'">');
+    }).join('');
+  }else box.innerHTML='<div id="empty">no alerts yet</div>';
+
+  $('foot').textContent=state
+    ? ('channel '+MO_CH.slice(0,10)+'… · updates every ~2s while the laptop tool is open')
+    : 'waiting for the first update from the laptop…';
+}
+
+pull();
+setInterval(pull,1500);
+setInterval(draw,1000);
+draw();
+})();
+</script>
+</body>
+</html>
