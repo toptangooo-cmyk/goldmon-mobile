@@ -123,30 +123,56 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
     <div class="x num" id="gBuyX">—</div>
   </div>
   <div class="cell">
+    <div class="k">Gram 24 sell</div>
+    <div class="v num" id="gSellV">—</div>
+    <div class="x">bid</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell">
+    <div class="k">ND USD</div>
+    <div class="v num" id="ndUsdV">—</div>
+    <div class="x">netdania +adj</div>
+  </div>
+  <div class="cell">
+    <div class="k">GCT USD</div>
+    <div class="v num" id="usdV">—</div>
+    <div class="x num" id="usdX">—</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell">
+    <div class="k">ND OZ</div>
+    <div class="v num" id="ndOzV">—</div>
+    <div class="x">netdania $/oz</div>
+  </div>
+  <div class="cell">
+    <div class="k">GCT OZ</div>
+    <div class="v num" id="gctOzV">—</div>
+    <div class="x">GCT $/oz</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell">
     <div class="k">XAU gap</div>
     <div class="v num" id="xauV">—</div>
     <div class="x">world vs GCT</div>
   </div>
-</div>
-
-<div class="grid2" style="margin-top:8px">
-  <div class="cell">
-    <div class="k">USD GCT</div>
-    <div class="v num" id="usdV">—</div>
-    <div class="x num" id="usdX">—</div>
-  </div>
-  <div class="cell" id="posCard">
-    <div class="k">Position</div>
-    <div class="v num" id="posV">FLAT</div>
-    <div class="x num" id="posX">—</div>
-  </div>
-</div>
-
-<div class="grid2" style="margin-top:8px">
   <div class="cell">
     <div class="k">Gram spread</div>
     <div class="v num" id="sprdV">—</div>
     <div class="x">sell − buy</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell" id="posCard">
+    <div class="k">Position</div>
+    <div class="v num" id="posV">FLAT</div>
+    <div class="x num" id="posX">—</div>
   </div>
   <div class="cell">
     <div class="k">P/L today</div>
@@ -186,6 +212,11 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    ٣ صفقات، مش بس اللوحة المختصرة الأصلية.
    v3 (٢١ سبتمبر): تانجو طلب تحديث كل ثانية بدل ١.٥ث — الكتابة من
    اللابتوب (moTick) بقت كل ثانية برضو بدل كل ثانيتين.
+   v4 (٢٢ سبتمبر): تانجو طلب تفاصيل أكتر — خانات زي اللابتوب بالظبط،
+   مش جداول. اتضاف: Gram 24 sell لوحده، ND USD (بالمعايرة)، GCT USD،
+   ND OZ، GCT OZ — كلهم خانات منفصلة. + goldmon.js v56 صلّح باجين:
+   (أ) موPayload كان بيقرا حقل غلط من predNext فيطلع "0" أحيانًا،
+   (ب) USD GCT ممكن يفضل فاضي لو onDollar() رمى استثناء جواها.
    التنفيذ الفعلي للصفقات يفضل من تطبيق GCT العادي — الصفحة دي عرض بس. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
@@ -271,18 +302,23 @@ function draw(){
 
   $('gBuyV').textContent=(state&&ok(state.gBuy))?f(state.gBuy,0):'—';
   $('gBuyX').textContent=(state&&ok(state.gSell))?('sell '+f(state.gSell,0)):'—';
+  $('gSellV').textContent=(state&&ok(state.gSell))?f(state.gSell,0):'—';
+
+  /* v3: ND USD وND OZ وGCT OZ بقوا خانات لوحدهم، مش بس سطر فرعي */
+  $('ndUsdV').textContent=(state&&ok(state.usdW))?f(state.usdW,3):'—';
+  $('ndOzV').textContent=(state&&ok(state.xauW))?f(state.xauW,2):'—';
+  $('gctOzV').textContent=(state&&ok(state.xauG))?f(state.xauG,2):'—';
 
   if(state&&ok(state.xauW)&&ok(state.xauG)){
     var gap=state.xauW-state.xauG;
     $('xauV').textContent=sgn(gap,2);
     $('xauV').className='v num '+(gap>=0?'up':'dn');
-    $('xauX').textContent='world '+f(state.xauW,2)+' · gct '+f(state.xauG,2);
-  }else{$('xauV').textContent='—';$('xauV').className='v num neutral';$('xauX').textContent='world vs GCT'}
+  }else{$('xauV').textContent='—';$('xauV').className='v num neutral'}
 
   if(state&&ok(state.usdG)){
     $('usdV').textContent=f(state.usdG,3);
     $('usdV').className='v num';
-    $('usdX').textContent=ok(state.usdW)?('world '+f(state.usdW,3)+' ('+sgn(state.usdG-state.usdW,3)+')'):'—';
+    $('usdX').textContent=ok(state.usdW)?sgn(state.usdG-state.usdW,3):'—';
   }else{$('usdV').textContent='—';$('usdV').className='v num neutral';$('usdX').textContent='—'}
 
   var pc=$('posCard');
