@@ -179,11 +179,13 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
    الموبايل — Artifact (claude.ai) ماينفعش، الـCSP بتاعه بيمنع fetch
    لـFirebase (اتعرف ده يوم ١٦ سبتمبر).
-   الصفحة دي مش بتحسب أي حاجة بنفسها — بتقرا كل ١.٥ ثانية آخر حالة
+   الصفحة دي مش بتحسب أي حاجة بنفسها — بتقرا كل ثانية آخر حالة
    كتبها goldmon.js (اللابتوب) على Firebase Realtime Database وتعرضها.
    v2 (٢١ سبتمبر): تانجو طلب تفاصيل أكتر — بقى فيها حالة التغذية
    (ذهب/دولار) + عنوان GCT الشغال + سبريد الجرام + ربح اليوم + آخر
    ٣ صفقات، مش بس اللوحة المختصرة الأصلية.
+   v3 (٢١ سبتمبر): تانجو طلب تحديث كل ثانية بدل ١.٥ث — الكتابة من
+   اللابتوب (moTick) بقت كل ثانية برضو بدل كل ثانيتين.
    التنفيذ الفعلي للصفقات يفضل من تطبيق GCT العادي — الصفحة دي عرض بس. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
@@ -332,12 +334,12 @@ function draw(){
   }else box.innerHTML='<div id="empty">no alerts yet</div>';
 
   $('foot').textContent=state
-    ? ('channel '+MO_CH.slice(0,10)+'… · updates every ~2s while the laptop tool is open')
+    ? ('channel '+MO_CH.slice(0,10)+'… · updates every ~1s while the laptop tool is open')
     : 'waiting for the first update from the laptop…';
 }
 
 pull();
-setInterval(pull,1500);
+setInterval(pull,1000);
 setInterval(draw,1000);
 draw();
 })();
