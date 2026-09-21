@@ -25,13 +25,23 @@ body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16
 .wrap{max-width:520px;margin:0 auto}
 
 #bar{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.5px;
-  font-weight:700;padding:10px 2px 8px;text-transform:uppercase}
+  font-weight:700;padding:10px 2px 2px;text-transform:uppercase}
 #bar .dot{width:7px;height:7px;border-radius:50%;background:var(--dim2);flex:none;
   transition:background .3s}
 #bar .dot.on{background:var(--up);box-shadow:0 0 6px var(--up)}
 #bar .dot.warn{background:var(--gold)} #bar .dot.off{background:var(--dn)}
 #src{color:var(--dim)}
 #mkt{margin-left:auto;color:var(--dim)}
+
+#feedRow{display:flex;align-items:center;gap:10px;font-size:10.5px;color:var(--dim2);
+  padding:2px 2px 9px;flex-wrap:wrap}
+#feedRow .fp{display:flex;align-items:center;gap:4px}
+#feedRow .fp .d{width:6px;height:6px;border-radius:50%;background:var(--dim2)}
+#feedRow .fp .d.live{background:var(--up)}
+#feedRow .fp .d.frozen{background:var(--gold)}
+#feedRow .fp .d.closed,#feedRow .fp .d.none{background:var(--dn)}
+#feedRow .host{margin-left:auto}
+#feedRow .host.warn{color:var(--gold);font-weight:700}
 
 #warn{display:none;background:#3A1D1A;border:1px solid var(--dn);color:#FFD9D4;
   font-size:11.5px;padding:9px 10px;border-radius:8px;margin-bottom:8px;line-height:1.5}
@@ -65,7 +75,14 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 #alerts .k{flex:0 0 auto;font-size:9.5px;padding:2px 6px;border-radius:5px;font-weight:800;
   letter-spacing:.3px;color:#0E1613}
 #alerts .m{color:var(--dim);flex:1;min-width:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
-#empty{color:var(--dim2);font-size:12px;padding:8px 4px}
+#empty,#tEmpty{color:var(--dim2);font-size:12px;padding:8px 4px}
+
+#trades .tr{display:flex;gap:8px;padding:8px 4px;border-top:1px solid var(--line);
+  font-size:12.5px;align-items:baseline}
+#trades .tr:first-child{border-top:none}
+#trades .tt{color:var(--dim2);flex:0 0 42px}
+#trades .pp{flex:1;min-width:0;color:var(--dim)}
+#trades .gg{flex:0 0 auto;font-weight:800}
 
 .note{font-size:10.5px;color:var(--dim2);line-height:1.6;margin-top:10px;padding:0 2px}
 </style>
@@ -76,6 +93,11 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 <div id="bar">
   <span class="dot" id="dGct"></span><span id="src">connecting…</span>
   <span id="mkt"></span>
+</div>
+<div id="feedRow">
+  <span class="fp"><span class="d" id="dGold"></span>XAU <span id="goldSt">—</span></span>
+  <span class="fp"><span class="d" id="dUsd"></span>USD <span id="usdSt">—</span></span>
+  <span class="host" id="apiHost"></span>
 </div>
 
 <div id="warn"></div>
@@ -120,6 +142,24 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
   </div>
 </div>
 
+<div class="grid2" style="margin-top:8px">
+  <div class="cell">
+    <div class="k">Gram spread</div>
+    <div class="v num" id="sprdV">—</div>
+    <div class="x">sell − buy</div>
+  </div>
+  <div class="cell">
+    <div class="k">P/L today</div>
+    <div class="v num" id="plV">—</div>
+    <div class="x num" id="plX">—</div>
+  </div>
+</div>
+
+<h2>Last trades</h2>
+<div class="card" style="padding:2px 8px">
+  <div id="trades"><div id="tEmpty">no closed trades yet</div></div>
+</div>
+
 <h2>Alerts</h2>
 <div class="card" style="padding:2px 8px">
   <div id="alerts"><div id="empty">no alerts yet</div></div>
@@ -133,13 +173,17 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 (function(){
 'use strict';
 /* ==================================================================
-   GOLD MONITOR — mobile mirror (v1)
+   GOLD MONITOR — mobile mirror (v2)
    ------------------------------------------------------------------
-   نسخة احتياطية محلية من نفس الصفحة المنشورة على claude.ai. لو حبيت
-   تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك (GitHub Pages،
-   Netlify، حتى Firebase Hosting بتاع نفس المشروع) وافتحها من الموبايل.
+   نسخة احتياطية محلية من نفس الصفحة المنشورة على GitHub Pages. لو
+   حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
+   الموبايل — Artifact (claude.ai) ماينفعش، الـCSP بتاعه بيمنع fetch
+   لـFirebase (اتعرف ده يوم ١٦ سبتمبر).
    الصفحة دي مش بتحسب أي حاجة بنفسها — بتقرا كل ١.٥ ثانية آخر حالة
    كتبها goldmon.js (اللابتوب) على Firebase Realtime Database وتعرضها.
+   v2 (٢١ سبتمبر): تانجو طلب تفاصيل أكتر — بقى فيها حالة التغذية
+   (ذهب/دولار) + عنوان GCT الشغال + سبريد الجرام + ربح اليوم + آخر
+   ٣ صفقات، مش بس اللوحة المختصرة الأصلية.
    التنفيذ الفعلي للصفقات يفضل من تطبيق GCT العادي — الصفحة دي عرض بس. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
@@ -148,12 +192,15 @@ var KCOL={SETUP:'#4A9FD8','GOLD EDGE':'#C9A227','LAST CALL':'#E8574A','USD JUMP'
   'USD SPREAD':'#9B7BD8',LOCKED:'#4FB477','GCT ANOMALY':'#F5D93B','BREAK-EVEN':'#4FB477',
   'T-60':'#C9A227','GCT REPRICE':'#F5D93B','TOOL ASLEEP':'#E8574A','STOP-LOSS':'#E8574A',
   'WATCH LOW':'#C9A227'};
+var PRIMARY_HOST='golden-circle.net';
 
 function ok(n){return typeof n==='number'&&isFinite(n)}
 function f(n,d){return (n==null||!isFinite(n))?'—':
   Number(n).toLocaleString('en-US',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d})}
 function sgn(n,d){return (n==null||!isFinite(n))?'—':((n>=0?'+':'')+f(n,d))}
 function mmss(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')}
+function mins(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+  return h?(h+'h '+m+'m'):(m+'m')}
 
 var state=null, fails=0;
 
@@ -191,6 +238,22 @@ function draw(){
     $('mkt').style.color=(mk==='open')?'var(--up)':'var(--gold)';
   }else $('mkt').textContent='';
 
+  /* حالة التغذية + عنوان GCT */
+  var feed=(state&&state.feed)||{};
+  function setFeed(dotId,txtId,val){
+    var d=$(dotId),t=$(txtId);
+    d.className='d '+(val||'');
+    t.textContent=val||'—';
+  }
+  setFeed('dGold','goldSt',feed.gold);
+  setFeed('dUsd','usdSt',feed.usd);
+  var hostEl=$('apiHost');
+  if(state&&state.apiHost){
+    var warnHost=(state.apiHost!==PRIMARY_HOST);
+    hostEl.textContent='gct: '+state.apiHost;
+    hostEl.className='host'+(warnHost?' warn':'');
+  }else{hostEl.textContent='';hostEl.className='host'}
+
   if(state&&ok(state.nextEgp)){
     $('predV').textContent=f(state.nextEgp,0);
     $('predV').className='big num';
@@ -226,12 +289,36 @@ function draw(){
     $('posV').textContent=f(state.pos.gr,1)+'g';
     $('posV').className='v num';
     var pl=state.pos.pl;
-    $('posX').innerHTML='@ '+f(state.pos.cost,0)+(ok(pl)?(' · <span class="'+(pl>=0?'up':'dn')+'">'+sgn(pl,0)+'</span>'):'');
+    var heldTxt=(state.pos.bt)?(' · '+mins((now-state.pos.bt)/1000)):'';
+    $('posX').innerHTML='@ '+f(state.pos.cost,0)+heldTxt+(ok(pl)?(' · <span class="'+(pl>=0?'up':'dn')+'">'+sgn(pl,0)+'</span>'):'');
   }else{
     pc.className='cell';
     $('posV').textContent='FLAT';$('posV').className='v num neutral';
     $('posX').textContent='—';
   }
+
+  if(state&&ok(state.sprd)){
+    $('sprdV').textContent=f(state.sprd,2);
+    $('sprdV').className='v num';
+  }else{$('sprdV').textContent='—';$('sprdV').className='v num neutral'}
+
+  if(state&&state.pl){
+    var t0=state.pl.today;
+    $('plV').textContent=sgn(t0,0);
+    $('plV').className='v num '+(t0>=0?'up':'dn');
+    $('plX').textContent=(state.pl.n||0)+' today · all '+f(state.pl.all,0);
+  }else{$('plV').textContent='—';$('plV').className='v num neutral';$('plX').textContent='—'}
+
+  var trBox=$('trades');
+  if(state&&state.lastTrades&&state.lastTrades.length){
+    trBox.innerHTML=state.lastTrades.map(function(tr){
+      var pl=tr.pl,cls=(ok(pl)&&pl>=0)?'up':'dn';
+      var held=ok(tr.hs)?(' · '+mins(tr.hs)):'';
+      return '<div class="tr"><span class="tt num">'+(tr.t||'')+'</span>'
+        +'<span class="pp num">'+f(tr.entry,0)+' → '+f(tr.exit,0)+held+'</span>'
+        +'<span class="gg num '+cls+'">'+sgn(pl,0)+'</span></div>';
+    }).join('');
+  }else trBox.innerHTML='<div id="tEmpty">no closed trades yet</div>';
 
   var box=$('alerts');
   if(state&&state.alerts&&state.alerts.length){
