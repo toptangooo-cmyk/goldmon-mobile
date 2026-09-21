@@ -61,10 +61,20 @@ body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .cell{background:var(--pan);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
+.cell.span2{grid-column:1/-1}
 .cell .v{font-size:19px;font-weight:800;margin-top:2px}
 .cell .x{font-size:10px;color:var(--dim2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 #posCard.hold{border-color:var(--gold)}
+
+#cCash{margin-top:8px}
+#cCash .row{display:flex;gap:8px;align-items:center;margin-top:6px}
+#cCash input{flex:1;min-width:0;background:var(--pan2);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font-size:16px;padding:8px 10px;font-family:inherit}
+#cCash button{flex:none;background:var(--gold);color:#0E1613;border:none;border-radius:8px;
+  font-weight:800;font-size:13px;padding:8px 14px}
+#cCash .x{font-size:11px;color:var(--dim2);margin-top:6px}
+#cCash .saved{color:var(--up);font-size:10.5px}
 
 h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
   text-transform:uppercase;font-weight:700}
@@ -108,10 +118,13 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
     <div>
       <div class="big num" id="predV">—</div>
       <div class="sub" id="predS">—</div>
+      <div class="sub num" id="predOzS">—</div>
     </div>
     <div id="cd">
       <div class="k">In</div>
       <div id="cdV" class="num">—</div>
+      <div class="k" style="margin-top:8px">Cycle</div>
+      <div id="cycV" class="num" style="font-size:16px;font-weight:800;color:var(--dim)">—</div>
     </div>
   </div>
 </div>
@@ -123,9 +136,9 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
     <div class="x num" id="gBuyX">—</div>
   </div>
   <div class="cell">
-    <div class="k">Gram 24 sell</div>
-    <div class="v num" id="gSellV">—</div>
-    <div class="x">bid</div>
+    <div class="k">XAU gap</div>
+    <div class="v num" id="xauV">—</div>
+    <div class="x">world vs GCT</div>
   </div>
 </div>
 
@@ -157,14 +170,14 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 
 <div class="grid2" style="margin-top:8px">
   <div class="cell">
-    <div class="k">XAU gap</div>
-    <div class="v num" id="xauV">—</div>
-    <div class="x">world vs GCT</div>
+    <div class="k">USD gap</div>
+    <div class="v num" id="usdGapV">—</div>
+    <div class="x">GCT − netdania</div>
   </div>
   <div class="cell">
-    <div class="k">Gram spread</div>
-    <div class="v num" id="sprdV">—</div>
-    <div class="x">sell − buy</div>
+    <div class="k">To B/E</div>
+    <div class="v num" id="beV">—</div>
+    <div class="x">EGP/g past break-even</div>
   </div>
 </div>
 
@@ -175,10 +188,27 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
     <div class="x num" id="posX">—</div>
   </div>
   <div class="cell">
+    <div class="k">Sell now · GCT</div>
+    <div class="v num" id="snowV">—</div>
+    <div class="x">at current b24</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell span2">
     <div class="k">P/L today</div>
     <div class="v num" id="plV">—</div>
     <div class="x num" id="plX">—</div>
   </div>
+</div>
+
+<div class="card" id="cCash">
+  <div class="k">My cash <span class="saved" id="cashSaved"></span></div>
+  <div class="row">
+    <input id="cashIn" type="number" inputmode="decimal" placeholder="0">
+    <button id="cashBtn">SET</button>
+  </div>
+  <div class="x" id="cashX">—</div>
 </div>
 
 <h2>Last trades</h2>
@@ -217,6 +247,15 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    ND OZ، GCT OZ — كلهم خانات منفصلة. + goldmon.js v56 صلّح باجين:
    (أ) موPayload كان بيقرا حقل غلط من predNext فيطلع "0" أحيانًا،
    (ب) USD GCT ممكن يفضل فاضي لو onDollar() رمى استثناء جواها.
+   v5 (٢٢ سبتمبر): شال Gram 24 sell وGram spread (تانجو قال مش محتاجهم).
+   ضاف: عداد ثواني الدورة (Cycle)، To B/E، Sell now · GCT، USD gap
+   لوحدها، سعر الأونصة المتوقع جنب سعر الجرام. صلّح باج حقيقي: شارة
+   لون الإنذار (span.k) كانت مربوطة بـ.replace() بعد سلسلة + طويلة —
+   بسبب أولوية العمليات كان بيتنفذ على جزء نصي غلط والستايل مايتطبقش
+   خالص (الشارة كانت بتطلع من غير لون خلفية). وضاف كارت "My cash" —
+   قابل للتعديل من الموبايل نفسه، وبيبعت القيمة الجديدة على مسار
+   /cmd منفصل تحت نفس القناة؛ اللابتوب (moPullCmd في v57) بيقراه ويطبقه.
+   أول اتجاه بث من الموبايل للابتوب، مش بس العكس.
    التنفيذ الفعلي للصفقات يفضل من تطبيق GCT العادي — الصفحة دي عرض بس. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
@@ -298,13 +337,15 @@ function draw(){
     $('predV').textContent='—';$('predV').className='big num neutral';
     $('predS').textContent='waiting for a locked print';
   }
+  /* v5: سعر الأونصة المتوقع بالدولار جنب سعر الجرام بالمصري */
+  $('predOzS').textContent=(state&&ok(state.nextOz))?('≈ $'+f(state.nextOz,2)+' /oz'):'—';
   $('cdV').textContent=(state&&ok(state.nextInSec))?mmss(state.nextInSec):'—';
+  $('cycV').textContent=(state&&ok(state.cycleInSec))?mmss(state.cycleInSec):'—';
 
   $('gBuyV').textContent=(state&&ok(state.gBuy))?f(state.gBuy,0):'—';
   $('gBuyX').textContent=(state&&ok(state.gSell))?('sell '+f(state.gSell,0)):'—';
-  $('gSellV').textContent=(state&&ok(state.gSell))?f(state.gSell,0):'—';
 
-  /* v3: ND USD وND OZ وGCT OZ بقوا خانات لوحدهم، مش بس سطر فرعي */
+  /* v4/v5: ND USD وND OZ وGCT OZ وUSD gap بقوا خانات لوحدهم */
   $('ndUsdV').textContent=(state&&ok(state.usdW))?f(state.usdW,3):'—';
   $('ndOzV').textContent=(state&&ok(state.xauW))?f(state.xauW,2):'—';
   $('gctOzV').textContent=(state&&ok(state.xauG))?f(state.xauG,2):'—';
@@ -321,6 +362,24 @@ function draw(){
     $('usdX').textContent=ok(state.usdW)?sgn(state.usdG-state.usdW,3):'—';
   }else{$('usdV').textContent='—';$('usdV').className='v num neutral';$('usdX').textContent='—'}
 
+  /* v5: خانة USD gap لوحدها (كانت مجرد سطر فرعي تحت GCT USD) */
+  if(state&&ok(state.usdG)&&ok(state.usdW)){
+    var ugap=state.usdG-state.usdW;
+    $('usdGapV').textContent=sgn(ugap,3);
+    $('usdGapV').className='v num '+(ugap>=0?'up':'dn');
+  }else{$('usdGapV').textContent='—';$('usdGapV').className='v num neutral'}
+
+  /* v5: To B/E وSell now · GCT — بيتحسبوا في اللابتوب وبيوصلوا جاهزين،
+     وبيظهروا بس وانت في مركز مفتوح (زي اللابتوب بالظبط) */
+  if(state&&state.pos&&ok(state.toBE)){
+    $('beV').textContent=sgn(state.toBE,2);
+    $('beV').className='v num '+(state.toBE>=0?'up':'dn');
+  }else{$('beV').textContent='—';$('beV').className='v num neutral'}
+  if(state&&state.pos&&ok(state.sellNowGct)){
+    $('snowV').textContent=sgn(state.sellNowGct,0);
+    $('snowV').className='v num '+(state.sellNowGct>=0?'up':'dn');
+  }else{$('snowV').textContent='—';$('snowV').className='v num neutral'}
+
   var pc=$('posCard');
   if(state&&state.pos){
     pc.className='cell hold';
@@ -335,10 +394,14 @@ function draw(){
     $('posX').textContent='—';
   }
 
-  if(state&&ok(state.sprd)){
-    $('sprdV').textContent=f(state.sprd,2);
-    $('sprdV').className='v num';
-  }else{$('sprdV').textContent='—';$('sprdV').className='v num neutral'}
+  /* v5: كاش قابل للتعديل — نحدث الخانة بس لو المستخدم مش بيكتب فيها دلوقتي */
+  var cashEl=$('cashIn');
+  if(state&&ok(state.cash)&&document.activeElement!==cashEl){
+    cashEl.value=state.cash.toFixed(2);
+  }
+  $('cashX').textContent=(state&&ok(state.canGr))
+    ?('buys ≈ '+f(state.canGr,1)+'g at current buy price')
+    :'—';
 
   if(state&&state.pl){
     var t0=state.pl.today;
@@ -362,10 +425,14 @@ function draw(){
   if(state&&state.alerts&&state.alerts.length){
     box.innerHTML=state.alerts.map(function(a){
       var c=KCOL[a.k]||'#8FA39A';
+      /* v5: باج — الستايل كان بيتحط بـ.replace() بعد سلسلة +، وده بيتنفذ
+         على آخر جزء نصي بس (أولوية العمليات في JS) مش على الشارة —
+         فمكانش بيلاقي '<span class="k">' أصلاً والستايل مايتطبقش، والشارة
+         كانت بتطلع من غير لون خلفية (بصمة صغيرة مش مقروءة). الحل: الستايل
+         بيتكتب جوه الـtag من الأول، مفيش replace. */
       return '<div class="al"><span class="t num">'+(a.t||'')+'</span>'
-        +'<span class="k">'+(a.k||'')+'</span>'
-        +'<span class="m">'+(a.m||'')+'</span></div>'
-        .replace('<span class="k">','<span class="k" style="background:'+c+'">');
+        +'<span class="k" style="background:'+c+'">'+(a.k||'')+'</span>'
+        +'<span class="m">'+(a.m||'')+'</span></div>';
     }).join('');
   }else box.innerHTML='<div id="empty">no alerts yet</div>';
 
@@ -373,6 +440,26 @@ function draw(){
     ? ('channel '+MO_CH.slice(0,10)+'… · updates every ~1s while the laptop tool is open')
     : 'waiting for the first update from the laptop…';
 }
+
+/* ================= v5: بعت الكاش الجديد للابتوب =================
+   مسار /cmd منفصل تحت نفس القناة (اتأكد إن قاعدة Firebase سامحة بالكتابة
+   عليه). اللابتوب (moPullCmd في goldmon.js v57) بيقراه كل ٥ تكات
+   ويطبّقه لو at أحدث من آخر أمر شافه. */
+function sendCash(){
+  var v=parseFloat($('cashIn').value);
+  if(!isFinite(v)||v<0){$('cashSaved').textContent='invalid number';return}
+  var btn=$('cashBtn');btn.disabled=true;
+  fetch(MO_URL+'/channels/'+MO_CH+'/cmd.json',{method:'PUT',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({cash:v,at:Date.now()})})
+    .then(function(r){
+      btn.disabled=false;
+      $('cashSaved').textContent=r&&r.ok?'saved':'failed — try again';
+      if(r&&r.ok)setTimeout(function(){$('cashSaved').textContent=''},3000);
+    })
+    .catch(function(){btn.disabled=false;$('cashSaved').textContent='failed — check connection'});
+}
+$('cashBtn').addEventListener('click',sendCash);
+$('cashIn').addEventListener('keydown',function(e){if(e.key==='Enter')sendCash()});
 
 pull();
 setInterval(pull,1000);
