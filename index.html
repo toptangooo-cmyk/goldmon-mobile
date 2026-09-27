@@ -64,6 +64,7 @@ body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16
 .cell.span2{grid-column:1/-1}
 .cell .v{font-size:19px;font-weight:800;margin-top:2px}
 .cell .x{font-size:10px;color:var(--dim2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell .x.up{color:var(--up)} .cell .x.dn{color:var(--dn)}
 
 #posCard.hold{border-color:var(--gold)}
 
@@ -138,7 +139,7 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
   <div class="cell">
     <div class="k">XAU gap</div>
     <div class="v num" id="xauV">—</div>
-    <div class="x">world vs GCT</div>
+    <div class="x num" id="xauEgpV">—</div>
   </div>
 </div>
 
@@ -229,7 +230,7 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 (function(){
 'use strict';
 /* ==================================================================
-   GOLD MONITOR — mobile mirror (v2)
+   GOLD MONITOR — mobile mirror (v6)
    ------------------------------------------------------------------
    نسخة احتياطية محلية من نفس الصفحة المنشورة على GitHub Pages. لو
    حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
@@ -256,7 +257,11 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    قابل للتعديل من الموبايل نفسه، وبيبعت القيمة الجديدة على مسار
    /cmd منفصل تحت نفس القناة؛ اللابتوب (moPullCmd في v57) بيقراه ويطبقه.
    أول اتجاه بث من الموبايل للابتوب، مش بس العكس.
-   التنفيذ الفعلي للصفقات يفضل من تطبيق GCT العادي — الصفحة دي عرض بس. */
+   التنفيذ الفعلي للصفقات يفضل من تطبيق GCT العادي — الصفحة دي عرض بس.
+   v6 (٢٧ سبتمبر): تانجو طلب خانة فرق الدهب بالمصري جنب "XAU gap" —
+   السطر الصغير تحتها (كان بيقول "world vs GCT" ثابت) بقى يحسب نفس
+   الفرق ده بالجنيه/جرام، بنفس معادلة jG اللي اللابتوب بيستخدمها،
+   من أرقام موجودة أصلًا في البث (xauW/xauG/gBuy) — من غير حقل جديد. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
 var MO_CH='gm50x7qT9vL2nR8wF3kP6sD1hB4jM0cX';
@@ -354,7 +359,15 @@ function draw(){
     var gap=state.xauW-state.xauG;
     $('xauV').textContent=sgn(gap,2);
     $('xauV').className='v num '+(gap>=0?'up':'dn');
-  }else{$('xauV').textContent='—';$('xauV').className='v num neutral'}
+    /* v6: نفس فرق الدهب (نتدانيا-GCT) بس محوّل جنيه/جرام — نفس معادلة
+       jG بالظبط اللي اللابتوب بيستخدمها: gap × (سعر الجرام÷سعر الأونصة GCT) */
+    if(ok(state.gBuy)&&state.xauG!==0){
+      var egpGap=Math.round(gap*(state.gBuy/state.xauG)*100)/100;
+      $('xauEgpV').textContent=sgn(egpGap,2)+' EGP/g';
+      $('xauEgpV').className='x num '+(egpGap>=0?'up':'dn');
+    }else{$('xauEgpV').textContent='world vs GCT';$('xauEgpV').className='x num'}
+  }else{$('xauV').textContent='—';$('xauV').className='v num neutral';
+    $('xauEgpV').textContent='world vs GCT';$('xauEgpV').className='x num'}
 
   if(state&&ok(state.usdG)){
     $('usdV').textContent=f(state.usdG,3);
