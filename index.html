@@ -56,8 +56,25 @@ body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16
 #cPred{background:var(--pan2);border-color:#2E4C63}
 #predRow{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
 #predV{color:var(--blue)}
-#cd{margin-left:auto;text-align:right}
-#cdV{font-size:28px;font-weight:800;color:var(--gold);line-height:1}
+
+/* v8: تانجو قال التايمر مهم جدًا — كارت لوحه في أول الصفحة، خط كبير
+   ولون دهبي/أصفر واضح، بدل ما يكون رقم صغير جوه كارت التوقع. */
+#cTimer{background:var(--pan2);border-color:var(--gold);text-align:center;padding:14px 12px}
+#cdV{font-size:54px;font-weight:800;color:var(--gold);line-height:1;letter-spacing:-1px}
+#cTimer .k{color:var(--gold)}
+#cycV{font-size:13px;font-weight:700;color:var(--dim);margin-top:4px}
+
+/* v8: زراير الصفقات من الموبايل */
+#cTrade .row{display:flex;gap:8px;margin-top:8px}
+#cTrade button{flex:1;border:none;border-radius:9px;font-weight:800;font-size:14px;
+  padding:12px 6px;font-family:inherit}
+#tBuy{background:var(--up);color:#0E1613}
+#tSell{background:var(--dn);color:#0E1613}
+#tPrev{flex:none;width:74px;background:var(--pan2);border:1px solid var(--gold);color:var(--gold)}
+#tPrev.on{background:var(--gold);color:#0E1613;font-weight:800}
+#cTrade button:disabled{opacity:.4}
+#tradeNote{font-size:11px;color:var(--dim2);margin-top:7px;min-height:14px}
+#tradeSaved{color:var(--up);font-size:10.5px}
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .cell{background:var(--pan);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
@@ -117,6 +134,12 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 
 <div id="warn"></div>
 
+<div class="card" id="cTimer">
+  <div class="k">Next GCT print in</div>
+  <div id="cdV" class="num">—</div>
+  <div id="cycV" class="num">—</div>
+</div>
+
 <div class="card" id="cPred">
   <div class="k">Next GCT print</div>
   <div id="predRow">
@@ -124,12 +147,6 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
       <div class="big num" id="predV">—</div>
       <div class="sub" id="predS">—</div>
       <div class="sub num" id="predOzS">—</div>
-    </div>
-    <div id="cd">
-      <div class="k">In</div>
-      <div id="cdV" class="num">—</div>
-      <div class="k" style="margin-top:8px">Cycle</div>
-      <div id="cycV" class="num" style="font-size:16px;font-weight:800;color:var(--dim)">—</div>
     </div>
   </div>
 </div>
@@ -220,6 +237,16 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
   <div class="x" id="cashX">—</div>
 </div>
 
+<div class="card" id="cTrade">
+  <div class="k">Trade <span class="saved" id="tradeSaved"></span></div>
+  <div class="row">
+    <button id="tBuy">BUY</button>
+    <button id="tSell">SELL</button>
+    <button id="tPrev" title="use last cycle's prices">PREV</button>
+  </div>
+  <div id="tradeNote">—</div>
+</div>
+
 <h2>Last trades</h2>
 <div class="card" style="padding:2px 8px">
   <div id="trades"><div id="tEmpty">no closed trades yet</div></div>
@@ -231,14 +258,14 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 </div>
 
 <div class="note" id="foot">—</div>
-<div class="note">View-only mirror of the desktop tool. Trade execution stays in the GCT app.</div>
+<div class="note">Mirrors the desktop tool live. BUY/SELL/PREV here send a command to the laptop (applied within ~5s on whichever tab is leading) — they don't execute locally.</div>
 </div>
 
 <script>
 (function(){
 'use strict';
 /* ==================================================================
-   GOLD MONITOR — mobile mirror (v7)
+   GOLD MONITOR — mobile mirror (v8)
    ------------------------------------------------------------------
    نسخة احتياطية محلية من نفس الصفحة المنشورة على GitHub Pages. لو
    حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
@@ -281,14 +308,33 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    ٣) USD gap: ضفنا نفس المعاملة — رقم جديد بالمصري جنبها، بمعادلة
       USD IMPACT /g بتاعة اللابتوب: (GCT−netdania)×(جرام٢٤÷دولار GCT).
    ٤) Gram 24 buy: كان صحيح (بدون كسور)، بقى بقروش (خانتين عشريتين).
-   ٥) ND USD وGCT USD: كانوا ٣ خانات عشرية، بقوا اتنين. */
+   ٥) ND USD وGCT USD: كانوا ٣ خانات عشرية، بقوا اتنين.
+   v8 (٢٨ سبتمبر): تانجو كان برا البيت واللاب سايبه شغال، وطلب ٣ حاجات —
+   ١) زراير BUY/SELL/PREV: الصفحة دي فضلت "عرض بس" لحد دلوقتي — الجديد
+      إنها بقت تقدر *تبعت أمر* للابتوب (مش تنفذ حاجة هنا بنفسها؛ الحساب
+      والتنفيذ الفعلي لسه في goldmon.js زي ما هو تمامًا). بتبعت على
+      مسار /cmd نفسه اللي "My cash" بيستخدمه من v5، واللاب (goldmon.js
+      v63، دالة moPullCmd) بيقراه ويطبّقه بنفس سعر/حجم زرار BOUGHT/SOLD
+      الافتراضي (من غير سعر أو حجم مكتوب باليد — مفيش خانات زي كده هنا).
+      قبل ما تبعت BUY/SELL: تأكيد (confirm) بيوريك السعر والحجم
+      التقريبي، وبترفض الصفحة تبعت لو البيانات قديمة (نفس عتبة الـ١٥ث
+      اللي التحذير الأحمر فوق بيستخدمها) — عشان ما تتصرفش على رقم مش
+      حي وانت مش شايف اللاب. PREV بيوري ×N جنبه لو مفعّل (من state.usePrev
+      اللي اللاب بقى يبعتها)، وبيتلغي لوحده بعد أي BUY/SELL زي اللاب
+      بالظبط. تأكيد إن الأمر اتنفذ (أو اتلغى وليه) بيوصل خلال ~٥ث في
+      قسم Alerts تحت (نوع "REMOTE") — مش بس sent، ده تأكيد إن اللاب
+      فعلًا استلم ونفّذ.
+   ٢) العداد بقى كارت لوحه في أول الصفحة، خط أكبر بكتير (٥٤px) ولون
+      دهبي واضح، بدل ما يكون رقم صغير جوه كارت "Next GCT print".
+   ٣) USD gap: نسينا الرقم الأصلي بالدولار في v7 وسيبناه ٣ خانات عشرية
+      رغم إن الرقم الجديد بالمصري جنبه كان اتنين — بقى الاتنين اتنين. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
 var MO_CH='gm50x7qT9vL2nR8wF3kP6sD1hB4jM0cX';
 var KCOL={SETUP:'#4A9FD8','GOLD EDGE':'#C9A227','LAST CALL':'#E8574A','USD JUMP':'#E8574A',
   'USD SPREAD':'#9B7BD8',LOCKED:'#4FB477','GCT ANOMALY':'#F5D93B','BREAK-EVEN':'#4FB477',
   'T-60':'#C9A227','GCT REPRICE':'#F5D93B','TOOL ASLEEP':'#E8574A','STOP-LOSS':'#E8574A',
-  'WATCH LOW':'#C9A227'};
+  'WATCH LOW':'#C9A227',REMOTE:'#4FB477'};
 var PRIMARY_HOST='golden-circle.net';
 
 function ok(n){return typeof n==='number'&&isFinite(n)}
@@ -365,7 +411,7 @@ function draw(){
   /* v5: سعر الأونصة المتوقع بالدولار جنب سعر الجرام بالمصري */
   $('predOzS').textContent=(state&&ok(state.nextOz))?('≈ $'+f(state.nextOz,2)+' /oz'):'—';
   $('cdV').textContent=(state&&ok(state.nextInSec))?mmss(state.nextInSec):'—';
-  $('cycV').textContent=(state&&ok(state.cycleInSec))?mmss(state.cycleInSec):'—';
+  $('cycV').textContent=(state&&ok(state.cycleInSec))?('cycle '+mmss(state.cycleInSec)):'—';
 
   /* v7: تانجو طلب كسور الجنيه (بالقروش) بدل رقم صحيح */
   $('gBuyV').textContent=(state&&ok(state.gBuy))?f(state.gBuy,2):'—';
@@ -404,7 +450,7 @@ function draw(){
      (GCT−netdania) × (سعر الجرام÷دولار GCT). */
   if(state&&ok(state.usdG)&&ok(state.usdW)){
     var ugap=state.usdG-state.usdW;
-    $('usdGapV').textContent=sgn(ugap,3);
+    $('usdGapV').textContent=sgn(ugap,2);
     $('usdGapV').className='v num '+(ugap>=0?'up':'dn');
     if(ok(state.gBuy)&&state.usdG!==0){
       var usdGapEgp=Math.round(ugap*(state.gBuy/state.usdG)*100)/100;
@@ -437,6 +483,27 @@ function draw(){
     pc.className='cell';
     $('posV').textContent='FLAT';$('posV').className='v num neutral';
     $('posX').textContent='—';
+  }
+
+  /* v8: حالة زراير الصفقات — SELL معطّل من غير مركز مفتوح (زي اللاب
+     بالظبط)، والاتنين معطّلين لو البيانات قديمة (نفس عتبة التحذير
+     الأحمر فوق) عشان ما تبعتش أمر مبني على رقم مش حي. PREV بيوري
+     ×N لو مفعّل — من state.usePrev اللي اللاب بقى يبعتها. */
+  var tradeStale=(age!=null&&age>=15);
+  $('tBuy').disabled=tradeStale;
+  $('tSell').disabled=tradeStale||!(state&&state.pos);
+  var upN=(state&&state.usePrev)|0;
+  $('tPrev').className=upN?'on':'';
+  $('tPrev').textContent=upN?('PREV ×'+upN):'PREV';
+  if(tradeStale){
+    $('tradeNote').textContent='data too old — buttons disabled until the laptop is live again';
+    $('tradeNote').style.color='var(--dn)';
+  }else{
+    $('tradeNote').textContent=(state&&ok(state.gBuy))
+      ?('buy ≈ '+f(state.gBuy,0)+(ok(state.canGr)?(' · ≈'+f(state.canGr,1)+'g'):'')
+        +(state.pos?(' · sell ≈ '+f(state.gSell,0)+' · '+f(state.pos.gr,1)+'g held'):''))
+      :'—';
+    $('tradeNote').style.color='var(--dim2)';
   }
 
   /* v5: كاش قابل للتعديل — نحدث الخانة بس لو المستخدم مش بيكتب فيها دلوقتي */
@@ -505,6 +572,54 @@ function sendCash(){
 }
 $('cashBtn').addEventListener('click',sendCash);
 $('cashIn').addEventListener('keydown',function(e){if(e.key==='Enter')sendCash()});
+
+/* ================= v8: زراير BUY/SELL/PREV من الموبايل =================
+   نفس مسار /cmd بالظبط (اللاب — goldmon.js v63، دالة moPullCmd — بيقراه
+   كل ٥ تكات ~٥ث ويطبّقه بنفس منطق زرار BOUGHT/SOLD الافتراضي، من غير
+   سعر أو حجم مكتوب باليد). الصفحة دي مش بتحسب ولا بتنفذ حاجة بنفسها —
+   بس بتبعت الأمر وتستنى تأكيد "REMOTE" في قسم Alerts تحت.
+   BUY/SELL بياخدوا confirm() فيه السعر والحجم التقريبي، وبيترفضوا لو
+   البيانات قديمة (نفس عتبة الـ١٥ث). PREV مفهوش فلوس بتتحرك فورًا —
+   من غير تأكيد، وبيتلغي لوحده بعد أول BUY/SELL زي اللاب بالظبط. */
+function sendTrade(act){
+  if(act!=='prev'){
+    var age=(state&&state.ts)?Math.round((Date.now()-state.ts)/1000):null;
+    if(!state||age==null||age>=15){
+      alert('data is too old ('+(age!=null?age+'s ago':'no data')+') — open the laptop and check it before trading');
+      return;
+    }
+    var msg;
+    if(act==='buy'){
+      if(!ok(state.gBuy)){alert('no live buy price yet');return}
+      msg='BUY now at ≈ '+f(state.gBuy,0)
+        +(ok(state.canGr)?(' · ≈ '+f(state.canGr,1)+'g'):'')
+        +(state.pos?('\n\nyou already hold '+f(state.pos.gr,1)+'g @ '+f(state.pos.cost,0)
+          +' — this REPLACES that position, it does not add to it.'):'')
+        +(state.usePrev?('\n\nusing the PREVIOUS cycle price (PREV ×'+state.usePrev+').'):'')
+        +(state.market&&state.market!=='open'?('\n\nmarket is currently '+state.market.toUpperCase()+'.'):'')
+        +'\n\nSend this to the laptop?';
+    }else if(act==='sell'){
+      if(!state.pos){alert('no open position to sell');return}
+      msg='SELL now — '+f(state.pos.gr,1)+'g @ ≈ '+f(state.gSell,0)
+        +(state.usePrev?('\n\nusing the PREVIOUS cycle price (PREV ×'+state.usePrev+').'):'')
+        +'\n\nSend this to the laptop?';
+    }
+    if(!confirm(msg))return;
+  }
+  var btns=[$('tBuy'),$('tSell'),$('tPrev')];
+  btns.forEach(function(b){b.disabled=true});
+  fetch(MO_URL+'/channels/'+MO_CH+'/cmd.json',{method:'PUT',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({act:act,at:Date.now()})})
+    .then(function(r){
+      $('tradeSaved').textContent=r&&r.ok?'sent — check Alerts below in ~5s':'failed — try again';
+      if(r&&r.ok)setTimeout(function(){$('tradeSaved').textContent=''},6000);
+      draw();
+    })
+    .catch(function(){$('tradeSaved').textContent='failed — check connection';draw()});
+}
+$('tBuy').addEventListener('click',function(){sendTrade('buy')});
+$('tSell').addEventListener('click',function(){sendTrade('sell')});
+$('tPrev').addEventListener('click',function(){sendTrade('prev')});
 
 pull();
 setInterval(pull,1000);
