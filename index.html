@@ -65,6 +65,10 @@ body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16
 .cell .v{font-size:19px;font-weight:800;margin-top:2px}
 .cell .x{font-size:10px;color:var(--dim2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cell .x.up{color:var(--up)} .cell .x.dn{color:var(--dn)}
+/* v7: زوج أرقام جنب بعض بنفس حجم .v (بدل رقم كبير + كابشن صغير تحته) —
+   لخانتي XAU gap وUSD gap: الفرق بالدولار والفرق بالمصري بنفس الوزن */
+.cell .row2{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.cell .row2 .v{margin-top:2px}
 
 #posCard.hold{border-color:var(--gold)}
 
@@ -138,21 +142,10 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
   </div>
   <div class="cell">
     <div class="k">XAU gap</div>
-    <div class="v num" id="xauV">—</div>
-    <div class="x num" id="xauEgpV">—</div>
-  </div>
-</div>
-
-<div class="grid2" style="margin-top:8px">
-  <div class="cell">
-    <div class="k">ND USD</div>
-    <div class="v num" id="ndUsdV">—</div>
-    <div class="x">netdania +adj</div>
-  </div>
-  <div class="cell">
-    <div class="k">GCT USD</div>
-    <div class="v num" id="usdV">—</div>
-    <div class="x num" id="usdX">—</div>
+    <div class="row2">
+      <div class="v num" id="xauV">—</div>
+      <div class="v num" id="xauEgpV">—</div>
+    </div>
   </div>
 </div>
 
@@ -172,8 +165,10 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 <div class="grid2" style="margin-top:8px">
   <div class="cell">
     <div class="k">USD gap</div>
-    <div class="v num" id="usdGapV">—</div>
-    <div class="x">GCT − netdania</div>
+    <div class="row2">
+      <div class="v num" id="usdGapV">—</div>
+      <div class="v num" id="usdGapEgpV">—</div>
+    </div>
   </div>
   <div class="cell">
     <div class="k">To B/E</div>
@@ -192,6 +187,19 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
     <div class="k">Sell now · GCT</div>
     <div class="v num" id="snowV">—</div>
     <div class="x">at current b24</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell">
+    <div class="k">ND USD</div>
+    <div class="v num" id="ndUsdV">—</div>
+    <div class="x">netdania +adj</div>
+  </div>
+  <div class="cell">
+    <div class="k">GCT USD</div>
+    <div class="v num" id="usdV">—</div>
+    <div class="x num" id="usdX">—</div>
   </div>
 </div>
 
@@ -230,7 +238,7 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 (function(){
 'use strict';
 /* ==================================================================
-   GOLD MONITOR — mobile mirror (v6)
+   GOLD MONITOR — mobile mirror (v7)
    ------------------------------------------------------------------
    نسخة احتياطية محلية من نفس الصفحة المنشورة على GitHub Pages. لو
    حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
@@ -261,7 +269,19 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    v6 (٢٧ سبتمبر): تانجو طلب خانة فرق الدهب بالمصري جنب "XAU gap" —
    السطر الصغير تحتها (كان بيقول "world vs GCT" ثابت) بقى يحسب نفس
    الفرق ده بالجنيه/جرام، بنفس معادلة jG اللي اللابتوب بيستخدمها،
-   من أرقام موجودة أصلًا في البث (xauW/xauG/gBuy) — من غير حقل جديد. */
+   من أرقام موجودة أصلًا في البث (xauW/xauG/gBuy) — من غير حقل جديد.
+   v7 (٢٨ سبتمبر): ملحوظة مهمة الأول — الصفحة دي مش بتحسب ولا بتقرا
+   حاجة بنفسها، بس بتعرض اللي اللابتوب باعته. يعني إصلاحات goldmon.js
+   v59-v62 الليلة (باج ask التالف في سجل نتدانيا، عتبة التجمد، إلخ)
+   بتوصل هنا تلقائي من غير أي تعديل — مفيش حاجة محتاجة "ترحيل".
+   التعديلات الفعلية المطلوبة هنا كانت واجهة بس:
+   ١) خانتا ND USD وGCT USD نزلوا تحت Position وSell now·GCT.
+   ٢) XAU gap: الفرق بالمصري بقى جنب الفرق بالدولار مش تحته، وبنفس
+      حجم الخط (.v مش .x) — كلاس css جديد .row2 لعرضهم جنب بعض.
+   ٣) USD gap: ضفنا نفس المعاملة — رقم جديد بالمصري جنبها، بمعادلة
+      USD IMPACT /g بتاعة اللابتوب: (GCT−netdania)×(جرام٢٤÷دولار GCT).
+   ٤) Gram 24 buy: كان صحيح (بدون كسور)، بقى بقروش (خانتين عشريتين).
+   ٥) ND USD وGCT USD: كانوا ٣ خانات عشرية، بقوا اتنين. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
 var MO_CH='gm50x7qT9vL2nR8wF3kP6sD1hB4jM0cX';
@@ -347,11 +367,13 @@ function draw(){
   $('cdV').textContent=(state&&ok(state.nextInSec))?mmss(state.nextInSec):'—';
   $('cycV').textContent=(state&&ok(state.cycleInSec))?mmss(state.cycleInSec):'—';
 
-  $('gBuyV').textContent=(state&&ok(state.gBuy))?f(state.gBuy,0):'—';
+  /* v7: تانجو طلب كسور الجنيه (بالقروش) بدل رقم صحيح */
+  $('gBuyV').textContent=(state&&ok(state.gBuy))?f(state.gBuy,2):'—';
   $('gBuyX').textContent=(state&&ok(state.gSell))?('sell '+f(state.gSell,0)):'—';
 
-  /* v4/v5: ND USD وND OZ وGCT OZ وUSD gap بقوا خانات لوحدهم */
-  $('ndUsdV').textContent=(state&&ok(state.usdW))?f(state.usdW,3):'—';
+  /* v4/v5: ND USD وND OZ وGCT OZ وUSD gap بقوا خانات لوحدهم.
+     v7: تانجو طلب خانتين عشريتين بدل ٣ (زي ما التوول شافها بالظبط الليلة). */
+  $('ndUsdV').textContent=(state&&ok(state.usdW))?f(state.usdW,2):'—';
   $('ndOzV').textContent=(state&&ok(state.xauW))?f(state.xauW,2):'—';
   $('gctOzV').textContent=(state&&ok(state.xauG))?f(state.xauG,2):'—';
 
@@ -360,27 +382,37 @@ function draw(){
     $('xauV').textContent=sgn(gap,2);
     $('xauV').className='v num '+(gap>=0?'up':'dn');
     /* v6: نفس فرق الدهب (نتدانيا-GCT) بس محوّل جنيه/جرام — نفس معادلة
-       jG بالظبط اللي اللابتوب بيستخدمها: gap × (سعر الجرام÷سعر الأونصة GCT) */
+       jG بالظبط اللي اللابتوب بيستخدمها: gap × (سعر الجرام÷سعر الأونصة GCT).
+       v7: جنب الرقم بالدولار مش تحته، وبنفس حجم خطه (.v مش .x). */
     if(ok(state.gBuy)&&state.xauG!==0){
       var egpGap=Math.round(gap*(state.gBuy/state.xauG)*100)/100;
       $('xauEgpV').textContent=sgn(egpGap,2)+' EGP/g';
-      $('xauEgpV').className='x num '+(egpGap>=0?'up':'dn');
-    }else{$('xauEgpV').textContent='world vs GCT';$('xauEgpV').className='x num'}
+      $('xauEgpV').className='v num '+(egpGap>=0?'up':'dn');
+    }else{$('xauEgpV').textContent='—';$('xauEgpV').className='v num neutral'}
   }else{$('xauV').textContent='—';$('xauV').className='v num neutral';
-    $('xauEgpV').textContent='world vs GCT';$('xauEgpV').className='x num'}
+    $('xauEgpV').textContent='—';$('xauEgpV').className='v num neutral'}
 
   if(state&&ok(state.usdG)){
-    $('usdV').textContent=f(state.usdG,3);
+    $('usdV').textContent=f(state.usdG,2);
     $('usdV').className='v num';
-    $('usdX').textContent=ok(state.usdW)?sgn(state.usdG-state.usdW,3):'—';
+    $('usdX').textContent=ok(state.usdW)?sgn(state.usdG-state.usdW,2):'—';
   }else{$('usdV').textContent='—';$('usdV').className='v num neutral';$('usdX').textContent='—'}
 
-  /* v5: خانة USD gap لوحدها (كانت مجرد سطر فرعي تحت GCT USD) */
+  /* v5: خانة USD gap لوحدها (كانت مجرد سطر فرعي تحت GCT USD).
+     v7: ضفنا جنبها الفرق بالمصري — نفس معاملة XAU gap بالظبط، بنفس
+     معادلة USD IMPACT /g اللي اللابتوب بيستخدمها:
+     (GCT−netdania) × (سعر الجرام÷دولار GCT). */
   if(state&&ok(state.usdG)&&ok(state.usdW)){
     var ugap=state.usdG-state.usdW;
     $('usdGapV').textContent=sgn(ugap,3);
     $('usdGapV').className='v num '+(ugap>=0?'up':'dn');
-  }else{$('usdGapV').textContent='—';$('usdGapV').className='v num neutral'}
+    if(ok(state.gBuy)&&state.usdG!==0){
+      var usdGapEgp=Math.round(ugap*(state.gBuy/state.usdG)*100)/100;
+      $('usdGapEgpV').textContent=sgn(usdGapEgp,2)+' EGP/g';
+      $('usdGapEgpV').className='v num '+(usdGapEgp>=0?'up':'dn');
+    }else{$('usdGapEgpV').textContent='—';$('usdGapEgpV').className='v num neutral'}
+  }else{$('usdGapV').textContent='—';$('usdGapV').className='v num neutral';
+    $('usdGapEgpV').textContent='—';$('usdGapEgpV').className='v num neutral'}
 
   /* v5: To B/E وSell now · GCT — بيتحسبوا في اللابتوب وبيوصلوا جاهزين،
      وبيظهروا بس وانت في مركز مفتوح (زي اللابتوب بالظبط) */
