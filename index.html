@@ -135,7 +135,7 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 <div id="warn"></div>
 
 <div class="card" id="cTimer">
-  <div class="k">Next GCT print in</div>
+  <div class="k">Next tick in</div>
   <div id="cdV" class="num">—</div>
   <div id="cycV" class="num">—</div>
 </div>
@@ -265,7 +265,7 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 (function(){
 'use strict';
 /* ==================================================================
-   GOLD MONITOR — mobile mirror (v8)
+   GOLD MONITOR — mobile mirror (v9)
    ------------------------------------------------------------------
    نسخة احتياطية محلية من نفس الصفحة المنشورة على GitHub Pages. لو
    حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
@@ -327,7 +327,20 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    ٢) العداد بقى كارت لوحه في أول الصفحة، خط أكبر بكتير (٥٤px) ولون
       دهبي واضح، بدل ما يكون رقم صغير جوه كارت "Next GCT print".
    ٣) USD gap: نسينا الرقم الأصلي بالدولار في v7 وسيبناه ٣ خانات عشرية
-      رغم إن الرقم الجديد بالمصري جنبه كان اتنين — بقى الاتنين اتنين. */
+      رغم إن الرقم الجديد بالمصري جنبه كان اتنين — بقى الاتنين اتنين.
+   v9 (٢٩ سبتمبر): تانجو قال التايمر والتوقع "بيهيسوا فى الوقت" — بيبان
+   ليه بعد الـ٥ دقايق وقدامه ٣ ثوانى بس. راجعنا بيانات الطبعات الحقيقية
+   (goldmon.js v64 changelog فيه التفاصيل) وطلعت مش باج فى محرك التوقع —
+   الباج كان **هنا بالظبط**: التايمر الكبير الدهبي كان متوصّل بـ
+   `state.nextInSec`، وده رقم اللاب بيحسبه بس *بعد* ما التوقع يتقفل
+   (عادة قبل الطبعة بدقيقة تقريبًا، مش من أول الدورة) — فكان التايمر
+   واقف على "—" أغلب الوقت وبعدين يظهر فجأة عليه ثوانى معدودة.
+   الإصلاح: التايمر الكبير بقى متوصّل بـ`state.cycleInSec` — نفس عداد
+   "NEXT TICK" اللي فوق اللوحة فى اللاب، بيعد من أول الدورة لحد آخرها
+   باستمرار من غير ما يستنى قفل. وضفنا حالة القفل نفسها (جايه من
+   goldmon.js v64) جنب رقم التوقع: "locks in Ns" وهو لسه مستنى، و"LATE
+   · sliding +Xs" لو الطبعة فعلاً اتأخرت عن المتوقع — بدل ما الموبايل
+   يفضل ساكت من غير تفسير زي الأول. */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
 var MO_CH='gm50x7qT9vL2nR8wF3kP6sD1hB4jM0cX';
@@ -397,21 +410,39 @@ function draw(){
     hostEl.className='host'+(warnHost?' warn':'');
   }else{hostEl.textContent='';hostEl.className='host'}
 
-  if(state&&ok(state.nextEgp)){
+  /* v9: حالة القفل (predLock/predLate/predLagS/predLockInSec) جايه من
+     goldmon.js v64 — نفس عنوان "NEXT GCT PRINT ⟨locked / LATE ·
+     sliding / locks in Ns⟩" اللي فوق اللوحة فى اللاب. قبل كده
+     الموبايل كان ساكت خالص لو الطبعة اتأخرت، من غير أي تفسير. */
+  if(state&&ok(state.nextEgp)&&state.predLock){
     $('predV').textContent=f(state.nextEgp,0);
     $('predV').className='big num';
     var mv=ok(state.gBuy)?(state.nextEgp-state.gBuy):null;
-    $('predS').innerHTML=mv!=null
+    var lockTxt=state.predLate
+      ?('<span class="dn">LATE · sliding'+(ok(state.predLagS)?(' +'+state.predLagS+'s'):'')+'</span> · ')
+      :'';
+    $('predS').innerHTML=lockTxt+(mv!=null
       ?('<span class="'+(mv>=0?'up':'dn')+'">'+sgn(mv,0)+' /g</span> from current')
-      :'—';
+      :'—');
   }else{
     $('predV').textContent='—';$('predV').className='big num neutral';
-    $('predS').textContent='waiting for a locked print';
+    $('predS').textContent=(state&&ok(state.predLockInSec))
+      ?('locks in '+state.predLockInSec+'s')
+      :'waiting for a locked print';
   }
   /* v5: سعر الأونصة المتوقع بالدولار جنب سعر الجرام بالمصري */
-  $('predOzS').textContent=(state&&ok(state.nextOz))?('≈ $'+f(state.nextOz,2)+' /oz'):'—';
-  $('cdV').textContent=(state&&ok(state.nextInSec))?mmss(state.nextInSec):'—';
-  $('cycV').textContent=(state&&ok(state.cycleInSec))?('cycle '+mmss(state.cycleInSec)):'—';
+  $('predOzS').textContent=(state&&ok(state.nextOz)&&state.predLock)?('≈ $'+f(state.nextOz,2)+' /oz'):'—';
+
+  /* v9: التايمر الكبير كان متوصّل بـstate.nextInSec — رقم بيتحسب بس
+     *بعد* ما التوقع يتقفل (قبل الطبعة بدقيقة تقريبًا، مش من أول
+     الدورة)، فكان واقف على "—" أغلب الـ٥ دقايق وبعدين يظهر فجأة
+     عليه ثوانى معدودة. المفروض state.cycleInSec — نفس عداد "NEXT
+     TICK" اللي فوق اللوحة فى اللاب، بيعد من أول الدورة لحد آخرها
+     باستمرار من غير ما يستنى قفل. */
+  $('cdV').textContent=(state&&ok(state.cycleInSec))?mmss(state.cycleInSec):'—';
+  $('cycV').textContent=(state&&!state.predLock&&ok(state.predLockInSec))
+    ?('prediction locks in '+state.predLockInSec+'s')
+    :(state&&state.predLock&&state.predLate?'prediction is running late':'');
 
   /* v7: تانجو طلب كسور الجنيه (بالقروش) بدل رقم صحيح */
   $('gBuyV').textContent=(state&&ok(state.gBuy))?f(state.gBuy,2):'—';
