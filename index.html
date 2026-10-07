@@ -151,11 +151,30 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
   </div>
 </div>
 
+<!-- v10: تانجو طلب يبدّل الست خانات دول (gram24/xau/ndoz/gctoz/usd/be) —
+     شمال: GCT OZ فوق، ND OZ تحتها، Gram 24 buy تحتها.
+     يمين: USD gap فوق، XAU gap تحتها، To B/E تحتها. اللي فوقيهم
+     (Next tick/Next GCT print) واللي تحتيهم (Position/ND USD إلخ) زي ما هم. -->
 <div class="grid2">
   <div class="cell">
-    <div class="k">Gram 24 buy</div>
-    <div class="v num" id="gBuyV">—</div>
-    <div class="x num" id="gBuyX">—</div>
+    <div class="k">GCT OZ</div>
+    <div class="v num" id="gctOzV">—</div>
+    <div class="x">GCT $/oz</div>
+  </div>
+  <div class="cell">
+    <div class="k">USD gap</div>
+    <div class="row2">
+      <div class="v num" id="usdGapV">—</div>
+      <div class="v num" id="usdGapEgpV">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:8px">
+  <div class="cell">
+    <div class="k">ND OZ</div>
+    <div class="v num" id="ndOzV">—</div>
+    <div class="x">netdania $/oz</div>
   </div>
   <div class="cell">
     <div class="k">XAU gap</div>
@@ -168,24 +187,9 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 
 <div class="grid2" style="margin-top:8px">
   <div class="cell">
-    <div class="k">ND OZ</div>
-    <div class="v num" id="ndOzV">—</div>
-    <div class="x">netdania $/oz</div>
-  </div>
-  <div class="cell">
-    <div class="k">GCT OZ</div>
-    <div class="v num" id="gctOzV">—</div>
-    <div class="x">GCT $/oz</div>
-  </div>
-</div>
-
-<div class="grid2" style="margin-top:8px">
-  <div class="cell">
-    <div class="k">USD gap</div>
-    <div class="row2">
-      <div class="v num" id="usdGapV">—</div>
-      <div class="v num" id="usdGapEgpV">—</div>
-    </div>
+    <div class="k">Gram 24 buy</div>
+    <div class="v num" id="gBuyV">—</div>
+    <div class="x num" id="gBuyX">—</div>
   </div>
   <div class="cell">
     <div class="k">To B/E</div>
@@ -265,7 +269,7 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 (function(){
 'use strict';
 /* ==================================================================
-   GOLD MONITOR — mobile mirror (v9)
+   GOLD MONITOR — mobile mirror (v10)
    ------------------------------------------------------------------
    نسخة احتياطية محلية من نفس الصفحة المنشورة على GitHub Pages. لو
    حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
@@ -340,7 +344,21 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
    باستمرار من غير ما يستنى قفل. وضفنا حالة القفل نفسها (جايه من
    goldmon.js v64) جنب رقم التوقع: "locks in Ns" وهو لسه مستنى، و"LATE
    · sliding +Xs" لو الطبعة فعلاً اتأخرت عن المتوقع — بدل ما الموبايل
-   يفضل ساكت من غير تفسير زي الأول. */
+   يفضل ساكت من غير تفسير زي الأول.
+   v10 (٧ أكتوبر): تانجو طلب تعديلين —
+   ١) باج حقيقي: خانة "USD gap" كانت متحسبة (GCT−netdania) بينما كل
+      حتة تانية في اللاب (ومنها XAU gap هنا نفسها) بتحسب العكس بالظبط:
+      (netdania−GCT). راجعنا renderPos() في goldmon.js (dgap=est-G.d)
+      وده أكّد إن الاتجاه الصح هو (netdania−GCT) — فلما الدولار
+      العالمي يعلى عن GCT كانت الخانة بتطلع سالبة بدل موجبة، والعكس.
+      الحل: state.usdW-state.usdG بدل state.usdG-state.usdW (ونفس
+      الإشارة بتتوارث تلقائي لخانة الفرق بالمصري جنبها).
+   ٢) ترتيب الخانات: الصف الشمال بقى GCT OZ فوق، ND OZ تحتها، Gram 24
+      buy تحتها. الصف اليمين بقى USD gap فوق، XAU gap تحتها، To B/E
+      تحتها. اللي فوق الست خانات دول (Next tick/Next GCT print) واللي
+      تحتهم (Position/Sell now/ND USD/GCT USD/P&L) زي ما هم بالظبط —
+      تعديل ترتيب DOM بس، مفيش تغيير في id أي خانة فمفيش تأثير على
+      draw(). */
 var $=function(id){return document.getElementById(id)};
 var MO_URL='https://goldmon-default-rtdb.firebaseio.com';
 var MO_CH='gm50x7qT9vL2nR8wF3kP6sD1hB4jM0cX';
@@ -477,10 +495,14 @@ function draw(){
 
   /* v5: خانة USD gap لوحدها (كانت مجرد سطر فرعي تحت GCT USD).
      v7: ضفنا جنبها الفرق بالمصري — نفس معاملة XAU gap بالظبط، بنفس
-     معادلة USD IMPACT /g اللي اللابتوب بيستخدمها:
-     (GCT−netdania) × (سعر الجرام÷دولار GCT). */
+     معادلة USD IMPACT /g اللي اللابتوب بيستخدمها.
+     v10: باج حقيقي — كانت متحسبة (GCT−netdania)، عكس كل حتة تانية في
+     اللاب. اللاب بيحسب دايمًا (netdania−GCT) — XAU gap هنا كانت ماشيه
+     صح (state.xauW-state.xauG)، بس USD gap كانت مقلوبة، فلما الدولار
+     العالمي يعلى عن GCT (المفروض يظهر +) كانت بتطلع -، والعكس. اتأكد
+     من اللاب نفسه (dgap=est-G.d في renderPos) وصلّحناها هنا لنفس الترتيب. */
   if(state&&ok(state.usdG)&&ok(state.usdW)){
-    var ugap=state.usdG-state.usdW;
+    var ugap=state.usdW-state.usdG;
     $('usdGapV').textContent=sgn(ugap,2);
     $('usdGapV').className='v num '+(ugap>=0?'up':'dn');
     if(ok(state.gBuy)&&state.usdG!==0){
