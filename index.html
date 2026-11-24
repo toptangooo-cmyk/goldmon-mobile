@@ -269,7 +269,17 @@ h2{font-size:11px;letter-spacing:1.2px;color:var(--dim);margin:16px 2px 7px;
 (function(){
 'use strict';
 /* ==================================================================
-   GOLD MONITOR — mobile mirror (v10)
+   GOLD MONITOR — mobile mirror (v11)
+   ------------------------------------------------------------------
+   v11 (٢٤ نوفمبر): تانجو اشتكى إن مركزه المفتوح وP/L اليوم بيختفوا
+   أحيانًا ويرجعوا "FLAT"/صفر بأرقام قديمة فعلًا (زي أرقام من بالليل
+   اللي فات). السبب: posCard وP/L TODAY كانوا بيتعرضوا من غير أي فحص
+   عمر خالص — لما الموبايل يتخبّى في خلفية التليفون لساعات (نظام
+   التشغيل بيوقف الـJS)، آخر state محفوظ في الذاكرة بيفضل زي ما هو،
+   وأول ما الصفحة ترجع تظهر بتوريه كإنه دلوقتي لحد ما أول pull() ناجحة
+   تجيب رقم طازة. دلوقتي نفس عتبة الـ١٥ث اللي التحذير الأحمر بيستخدمها
+   بقت تمسح الخانتين دول لـ"—" برضو وقت القِدَم، بدل ما تعرض رقم (أو
+   "FLAT") مش مؤكد.
    ------------------------------------------------------------------
    نسخة احتياطية محلية من نفس الصفحة المنشورة على GitHub Pages. لو
    حبيت تفتحها من غير اللينك، ارفعها لأي استضافة استاتيك وافتحها من
@@ -388,6 +398,18 @@ function pull(){
 function draw(){
   var now=Date.now();
   var age=(state&&state.ts)?Math.round((now-state.ts)/1000):null;
+  /* v11: باج حقيقي — POSITION وP/L TODAY كانوا بيتعرضوا من غير أي فحص
+     عمر خالص (عكس ND OZ/XAU gap اللي بيتمسحوا لـ"—" لما البيانات
+     تبوظ). لما الموبايل بيتخبّى في خلفية التليفون لساعات (نظام
+     التشغيل بيوقف الـJS تمامًا)، آخر state محفوظ في الذاكرة بيفضل
+     زي ما هو — ولو ده كان من إمبارح بالليل (مركز مقفول، P/L صفر)،
+     أول ما الصفحة ترجع تظهر بتوريه كإنه الحقيقة دلوقتي، لحد ما أول
+     pull() بعد الرجوع تنجح وتجيب رقم طازة. تانجو وصف بالظبط كده:
+     مركزه الحقيقي المفتوح بيختفي ويرجع "FLAT" مع أرقام قديمة. الحل:
+     نفس عتبة الـ١٥ث اللي التحذير الأحمر بيستخدمها، تطبّق على الخانتين
+     دول كمان — لو البيانات قديمة نوريها "—" مش رقم (مهما كان) ولا
+     "FLAT" (اللي هي نفسها ادّعاء مش مؤكد وقت القِدَم). */
+  var dataStale=(age!=null&&age>=15);
   var live=(age!=null&&age<8);
   var stale=(age!=null&&age>=8&&age<120);
   $('dGct').className='dot '+(live?'on':(stale?'warn':'off'));
@@ -525,7 +547,11 @@ function draw(){
   }else{$('snowV').textContent='—';$('snowV').className='v num neutral'}
 
   var pc=$('posCard');
-  if(state&&state.pos){
+  if(dataStale){
+    pc.className='cell';
+    $('posV').textContent='—';$('posV').className='v num neutral';
+    $('posX').textContent='stale — not live';
+  }else if(state&&state.pos){
     pc.className='cell hold';
     $('posV').textContent=f(state.pos.gr,1)+'g';
     $('posV').className='v num';
@@ -542,7 +568,7 @@ function draw(){
      بالظبط)، والاتنين معطّلين لو البيانات قديمة (نفس عتبة التحذير
      الأحمر فوق) عشان ما تبعتش أمر مبني على رقم مش حي. PREV بيوري
      ×N لو مفعّل — من state.usePrev اللي اللاب بقى يبعتها. */
-  var tradeStale=(age!=null&&age>=15);
+  var tradeStale=dataStale;
   $('tBuy').disabled=tradeStale;
   $('tSell').disabled=tradeStale||!(state&&state.pos);
   var upN=(state&&state.usePrev)|0;
@@ -568,7 +594,9 @@ function draw(){
     ?('buys ≈ '+f(state.canGr,1)+'g at current buy price')
     :'—';
 
-  if(state&&state.pl){
+  if(dataStale){
+    $('plV').textContent='—';$('plV').className='v num neutral';$('plX').textContent='stale — not live';
+  }else if(state&&state.pl){
     var t0=state.pl.today;
     $('plV').textContent=sgn(t0,0);
     $('plV').className='v num '+(t0>=0?'up':'dn');
